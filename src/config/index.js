@@ -3,22 +3,8 @@ require('dotenv').config();
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 3000,
-
-  facebook: {
-    pixelId: process.env.FB_PIXEL_ID,
-    accessToken: process.env.FB_ACCESS_TOKEN,
-    appSecret: process.env.FB_APP_SECRET,
-    testEventCode: process.env.NODE_ENV !== 'production' ? process.env.FB_TEST_EVENT_CODE : null,
-    graphApiVersion: 'v19.0',
-    graphApiBase: 'https://graph.facebook.com',
-  },
-
-  zoho: {
-    clientId: process.env.ZOHO_CLIENT_ID,
-    clientSecret: process.env.ZOHO_CLIENT_SECRET,
-    refreshToken: process.env.ZOHO_REFRESH_TOKEN,
-    webhookSecret: process.env.ZOHO_WEBHOOK_SECRET,
-  },
+  publicUrl: process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3000}`,
+  sessionSecret: process.env.SESSION_SECRET || 'changeme-set-SESSION_SECRET-in-env',
 
   redis: {
     host: process.env.REDIS_HOST || '127.0.0.1',
@@ -38,10 +24,10 @@ const config = {
 };
 
 function validate() {
-  const required = ['FB_PIXEL_ID', 'FB_ACCESS_TOKEN', 'ZOHO_WEBHOOK_SECRET'];
-  const missing = required.filter((k) => !process.env[k]);
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  // No required env vars in multi-tenant mode — all credentials are stored in DB.
+  // SESSION_SECRET should be set in production.
+  if (config.env === 'production' && config.sessionSecret === 'changeme-set-SESSION_SECRET-in-env') {
+    throw new Error('SESSION_SECRET must be set in production');
   }
 }
 

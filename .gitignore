@@ -4,3 +4,5 @@ logs/
 *.log
 coverage/
 .DS_Store
+data/*.db
+data/*.sqlite

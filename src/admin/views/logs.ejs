@@ -1,0 +1,83 @@
+<% pageTitle = account.name + ' — Event Logs'; %>
+
+<div class="mb-4">
+  <a href="/admin/accounts/<%= account.id %>" class="text-muted text-decoration-none small">
+    <i class="bi bi-arrow-left me-1"></i><%= account.name %>
+  </a>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="fw-bold mb-1"><i class="bi bi-list-ul me-2"></i>Event Logs</h5>
+    <div class="d-flex gap-3 small text-muted">
+      <span>Total: <strong><%= stats.total %></strong></span>
+      <span class="text-success">Success: <strong><%= stats.success %></strong></span>
+      <span class="text-danger">Failed: <strong><%= stats.failed %></strong></span>
+    </div>
+  </div>
+  <form method="GET" action="/admin/accounts/<%= account.id %>/logs">
+    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="" <%= !status ? 'selected' : '' %>>All Events</option>
+      <option value="success" <%= status === 'success' ? 'selected' : '' %>>Success only</option>
+      <option value="failed" <%= status === 'failed' ? 'selected' : '' %>>Failed only</option>
+    </select>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0" style="font-size:.84rem">
+      <thead class="table-light">
+        <tr>
+          <th style="width:155px">Time</th>
+          <th>Event Type</th>
+          <th>Zoho Record ID</th>
+          <th>CAPI Event ID</th>
+          <th>Status</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (logs.length === 0) { %>
+          <tr><td colspan="6" class="text-center text-muted py-4">No events found</td></tr>
+        <% } %>
+        <% logs.forEach(log => { %>
+          <tr>
+            <td class="text-muted"><%= new Date(log.created_at).toLocaleString() %></td>
+            <td><span class="badge bg-light text-dark border"><%= log.event_type %></span></td>
+            <td class="token-field text-muted small"><%= log.zoho_record_id || '—' %></td>
+            <td class="token-field text-muted" style="font-size:.73rem">
+              <%= log.capi_event_id ? log.capi_event_id.substring(0, 28) + '…' : '—' %>
+            </td>
+            <td>
+              <% if (log.status === 'success') { %>
+                <span class="badge bg-success-subtle text-success"><i class="bi bi-check me-1"></i>Success</span>
+              <% } else { %>
+                <span class="badge bg-danger-subtle text-danger"><i class="bi bi-x me-1"></i>Failed</span>
+              <% } %>
+            </td>
+            <td class="text-danger small"><%= log.error_message || '' %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% if (pages > 1) { %>
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="small text-muted">Page <%= page %> of <%= pages %> (<%= total %> total)</div>
+    <nav><ul class="pagination pagination-sm mb-0">
+      <li class="page-item <%= page <= 1 ? 'disabled' : '' %>">
+        <a class="page-link" href="?page=<%= page-1 %>&status=<%= status %>">‹</a>
+      </li>
+      <% for (let p = Math.max(1,page-2); p <= Math.min(pages,page+2); p++) { %>
+        <li class="page-item <%= p===page ? 'active' : '' %>">
+          <a class="page-link" href="?page=<%= p %>&status=<%= status %>"><%= p %></a>
+        </li>
+      <% } %>
+      <li class="page-item <%= page >= pages ? 'disabled' : '' %>">
+        <a class="page-link" href="?page=<%= page+1 %>&status=<%= status %>">›</a>
+      </li>
+    </ul></nav>
+  </div>
+  <% } %>
+</div>

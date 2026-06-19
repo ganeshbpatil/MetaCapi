@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle + ' — ' : '' %>MetaCapi</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background: #f8f9fa; }
+    .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
+    .card { border: none; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .status-dot.active  { background: #198754; }
+    .status-dot.pending { background: #ffc107; }
+    .status-dot.failed  { background: #dc3545; }
+    .status-dot.none    { background: #adb5bd; }
+    .section-header { font-size: .68rem; font-weight: 700; text-transform: uppercase;
+                      letter-spacing: .08em; color: #6c757d; margin-bottom: .4rem; }
+    .token-field { font-family: monospace; font-size: .8rem; }
+    pre.webhook-url { background: #212529; color: #f8f9fa; padding: .75rem 1rem;
+                      border-radius: .375rem; font-size: .78rem; word-break: break-all;
+                      white-space: pre-wrap; margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+<% if (typeof admin !== 'undefined' && admin) { %>
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="/admin">
+      <i class="bi bi-lightning-charge-fill text-warning me-1"></i>MetaCapi
+    </a>
+    <div class="d-flex align-items-center gap-3">
+      <a href="/admin/settings" class="text-white-50 text-decoration-none small">
+        <i class="bi bi-gear me-1"></i><%= admin.username %>
+      </a>
+      <a href="/admin/logout" class="btn btn-sm btn-outline-secondary">Logout</a>
+    </div>
+  </div>
+</nav>
+<% } %>
+
+<div class="container pb-5">
+  <%- content %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Test connection buttons (fetch-based)
+  document.querySelectorAll('[data-test-url]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const url = btn.dataset.testUrl;
+      const targetId = btn.dataset.target;
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+      try {
+        const r = await fetch(url, { method: 'POST' });
+        const d = await r.json();
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.className = 'alert mt-2 ' + (d.ok ? 'alert-success' : 'alert-danger');
+          el.innerHTML = (d.ok ? '<i class="bi bi-check-circle me-1"></i>' : '<i class="bi bi-x-circle me-1"></i>') + d.message;
+          el.classList.remove('d-none');
+        }
+      } catch(e) { alert('Request failed: ' + e.message); }
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    });
+  });
+
+  // Copy to clipboard
+  document.querySelectorAll('[data-copy-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = document.getElementById(btn.dataset.copyId);
+      const text = el ? (el.value || el.textContent) : '';
+      navigator.clipboard.writeText(text.trim()).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        setTimeout(() => btn.innerHTML = orig, 1800);
+      });
+    });
+  });
+</script>
+</body>
+</html>
