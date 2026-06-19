@@ -27,14 +27,17 @@ adminRouter.post('/login', express.urlencoded({ extended: false }), (req, res) =
   const { username, password } = req.body;
   if (adminUser.verify(username, password)) {
     req.session.admin = { username };
-    return res.redirect('/admin');
+    // Explicitly save session before redirect — async store may not flush in time
+    return req.session.save((err) => {
+      if (err) return res.render('login', { error: 'Session error — please try again' });
+      res.redirect('/admin');
+    });
   }
   res.render('login', { error: 'Invalid username or password' });
 });
 
 adminRouter.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/admin/login');
+  req.session.destroy(() => res.redirect('/admin/login'));
 });
 
 // --- Dashboard ---
