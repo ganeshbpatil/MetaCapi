@@ -60,13 +60,17 @@ app.use(helmet({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Trust reverse proxy (Traefik/Nginx) so secure cookies work behind HTTPS termination
+app.set('trust proxy', 1);
+
 app.use(session({
   store: new SqliteStore({ db: 'sessions.sqlite', dir: './data' }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: config.env === 'production',
+    // Only set secure if explicitly running behind HTTPS proxy (PUBLIC_URL starts with https)
+    secure: (process.env.PUBLIC_URL || '').startsWith('https://'),
     httpOnly: true,
     maxAge: 8 * 60 * 60 * 1000, // 8 hours
   },
