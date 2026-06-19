@@ -1,0 +1,64 @@
+// Deluge Function: send_purchase_event
+// Module: Deals | Trigger: Record Updated (Stage → Closed Won)
+// Input argument: deal_id (String)
+
+String PIXEL_ID     = zoho.crm.getVariable('FB_Pixel_ID').get('value');
+String ACCESS_TOKEN = zoho.crm.getVariable('FB_Access_Token').get('value');
+
+Map deal       = zoho.crm.getRecordById('Deals', deal_id);
+Double dealVal = deal.get('Amount');
+String campId  = deal.get('Source_Campaign_ID');
+String adId    = deal.get('Source_Ad_ID');
+
+String email = '';
+String phone  = '';
+String contactId = deal.get('Contact_Id');
+if (!contactId.isNull()) {
+  Map contact = zoho.crm.getRecordById('Contacts', contactId);
+  email = contact.get('Email');
+  phone = contact.get('Phone');
+}
+
+String eventId = 'purchase_' + deal_id + '_' + zoho.currenttime.toLong();
+
+Map userData = Map();
+if (email.length() > 0) {
+  userData.put('em', list(zoho.encryption.sha256(email.toLowerCase().trim())));
+}
+if (phone.length() > 0) {
+  String clean = phone.replaceAll('[^0-9]', '');
+  if (clean.length() == 10) { clean = '1' + clean; }
+  userData.put('ph', list(zoho.encryption.sha256(clean)));
+}
+
+Map customData = Map();
+customData.put('value', dealVal);
+customData.put('currency', 'USD');
+customData.put('order_id', 'DEAL-' + deal_id);
+customData.put('zoho_deal_id', deal_id.toString());
+if (!campId.isNull()) { customData.put('campaign_id', campId); }
+if (!adId.isNull())   { customData.put('ad_id', adId); }
+
+Map eventData = Map();
+eventData.put('event_name', 'Purchase');
+eventData.put('event_time', zoho.currenttime.toLong() / 1000);
+eventData.put('action_source', 'crm');
+eventData.put('event_id', eventId);
+eventData.put('user_data', userData);
+eventData.put('custom_data', customData);
+
+Map payload = Map();
+payload.put('data', list(eventData));
+payload.put('access_token', ACCESS_TOKEN);
+
+Map headers = Map();
+headers.put('Content-Type', 'application/json');
+String apiUrl = 'https://graph.facebook.com/v19.0/' + PIXEL_ID + '/events';
+
+try {
+  Map response = invokeURL([url: apiUrl, type: POST, parameters: payload.toString(), headers: headers]);
+  info '[CAPI] Purchase: ' + response.toString();
+  zoho.crm.updateRecord('Deals', deal_id, {'CAPI_Purchase_Sent': true});
+} catch (e) {
+  info '[CAPI] Purchase EXCEPTION: ' + e.toString();
+}

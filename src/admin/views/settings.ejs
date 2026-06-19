@@ -1,0 +1,38 @@
+<% const title = 'Settings'; %>
+
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <h5 class="fw-bold mb-4">Admin Settings</h5>
+
+    <% if (flash) { %>
+      <div class="alert alert-success"><i class="bi bi-check-circle me-1"></i><%= flash %></div>
+    <% } %>
+    <% if (error) { %>
+      <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-1"></i><%= error %></div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">Change Password</h6>
+        <form method="POST" action="/admin/settings/change-password">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Current Password</label>
+            <input type="password" name="current_password" class="form-control" required autocomplete="current-password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">New Password</label>
+            <input type="password" name="new_password" class="form-control" required autocomplete="new-password"
+              minlength="8" placeholder="At least 8 characters">
+          </div>
+          <div class="mb-4">
+            <label class="form-label small fw-semibold">Confirm New Password</label>
+            <input type="password" name="confirm_password" class="form-control" required autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn-warning w-100 fw-semibold">Update Password</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('layout') %>

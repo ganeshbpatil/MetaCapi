@@ -1,0 +1,329 @@
+<% pageTitle = account.name; %>
+
+<div class="mb-4">
+  <a href="/admin" class="text-muted text-decoration-none small">
+    <i class="bi bi-arrow-left me-1"></i>Dashboard
+  </a>
+</div>
+
+<% if (flash) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i><%= flash %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+<% if (typeof flashError !== 'undefined' && flashError) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <i class="bi bi-x-circle me-1"></i><%= flashError %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<div class="row g-4">
+
+  <!-- Left: Account info + webhook -->
+  <div class="col-lg-4">
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="section-header">Account Name</div>
+        <form method="POST" action="/admin/accounts/<%= account.id %>/update-name" class="d-flex gap-2 mb-3">
+          <input type="text" name="name" class="form-control form-control-sm" value="<%= account.name %>" required>
+          <button class="btn btn-sm btn-outline-dark">Save</button>
+        </form>
+
+        <div class="section-header">Event Stats (all time)</div>
+        <div class="d-flex gap-3 mb-3">
+          <div class="text-center">
+            <div class="fw-bold fs-5"><%= stats.total %></div>
+            <div class="text-muted" style="font-size:.7rem">Total</div>
+          </div>
+          <div class="text-center">
+            <div class="fw-bold fs-5 text-success"><%= stats.success %></div>
+            <div class="text-muted" style="font-size:.7rem">Success</div>
+          </div>
+          <div class="text-center">
+            <div class="fw-bold fs-5 text-danger"><%= stats.failed %></div>
+            <div class="text-muted" style="font-size:.7rem">Failed</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="/admin/accounts/<%= account.id %>/logs" class="btn btn-sm btn-outline-secondary flex-grow-1">
+            <i class="bi bi-list-ul me-1"></i>Event Logs
+          </a>
+          <a href="/admin/accounts/<%= account.id %>/field-mapping" class="btn btn-sm btn-outline-primary flex-grow-1">
+            <i class="bi bi-diagram-3 me-1"></i>Field Mapping
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="section-header">Zoho Webhook URL</div>
+        <p class="text-muted small">Paste this in your Zoho Workflow → Webhook action.</p>
+        <pre class="webhook-url" id="webhookUrl"><%= webhookUrl %></pre>
+        <button class="btn btn-sm btn-outline-secondary w-100 mt-2" data-copy-id="webhookUrl">
+          <i class="bi bi-clipboard me-1"></i>Copy URL
+        </button>
+
+        <hr class="my-3">
+
+        <div class="section-header">Webhook Signing Secret</div>
+        <p class="text-muted small">Use this as the HMAC-SHA256 key in your Zoho webhook.</p>
+        <input type="text" id="webhookSecret" class="form-control form-control-sm token-field mb-2"
+          value="<%= account.webhook_secret %>" readonly>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary flex-grow-1" data-copy-id="webhookSecret">
+            <i class="bi bi-clipboard me-1"></i>Copy
+          </button>
+          <form method="POST" action="/admin/accounts/<%= account.id %>/regenerate-secret"
+            onsubmit="return confirm('Regenerate secret? Existing Zoho webhooks will break until updated.')">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-arrow-repeat"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-danger-subtle">
+      <div class="card-body">
+        <div class="section-header text-danger">Danger Zone</div>
+        <form method="POST" action="/admin/accounts/<%= account.id %>/delete"
+          onsubmit="return confirm('Delete \'<%= account.name %>\'? Cannot be undone.')">
+          <button class="btn btn-sm btn-outline-danger w-100">
+            <i class="bi bi-trash me-1"></i>Delete Account
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- Right: Facebook + Zoho -->
+  <div class="col-lg-8">
+
+    <!-- FACEBOOK -->
+    <div class="card mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-start justify-content-between mb-3">
+          <div>
+            <h5 class="fw-bold mb-1">
+              <i class="bi bi-meta text-primary me-2"></i>Facebook / Meta Pixel
+            </h5>
+            <% if (account.fb_status === 'active') { %>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Connected — Pixel <%= account.pixel_id %>
+              </span>
+            <% } else { %>
+              <span class="badge bg-secondary-subtle text-secondary">Not connected</span>
+            <% } %>
+          </div>
+          <% if (account.fb_status === 'active') { %>
+            <button class="btn btn-sm btn-outline-primary"
+              data-test-url="/admin/accounts/<%= account.id %>/facebook/test"
+              data-target="fbTestResult">
+              <i class="bi bi-wifi me-1"></i>Test Connection
+            </button>
+          <% } %>
+        </div>
+        <div id="fbTestResult" class="d-none"></div>
+
+        <div class="accordion mb-3">
+          <div class="accordion-item border bg-light">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2 small fw-semibold bg-light"
+                type="button" data-bs-toggle="collapse" data-bs-target="#fbHelp">
+                <i class="bi bi-question-circle me-2 text-muted"></i>How to get Pixel ID &amp; Access Token (click to expand)
+              </button>
+            </h2>
+            <div id="fbHelp" class="accordion-collapse collapse">
+              <div class="accordion-body small py-2">
+                <ol class="mb-0 ps-3">
+                  <li><strong>business.facebook.com → Events Manager</strong> — select your Pixel, copy the <strong>Dataset ID</strong> (15–16 digit number)</li>
+                  <li><strong>Business Settings → Users → System Users → Add</strong> (role: Admin)</li>
+                  <li>Click <strong>Generate New Token</strong> → select your App → enable <code>ads_management</code> and <code>business_management</code></li>
+                  <li>Copy the token and paste below — it never expires for System Users</li>
+                  <li><em>Optional:</em> Get test event code from <strong>Events Manager → Test Events</strong> tab (dev only, remove before going live)</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form method="POST" action="/admin/accounts/<%= account.id %>/facebook/save">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Pixel ID <span class="text-danger">*</span></label>
+              <input type="text" name="pixel_id" class="form-control token-field"
+                value="<%= account.pixel_id || '' %>"
+                placeholder="123456789012345" required>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">System User Access Token <span class="text-danger">*</span></label>
+              <input type="password" name="access_token" class="form-control token-field"
+                placeholder="<%= account.fb_status === 'active' ? '(leave blank to keep current)' : 'EAAxxxxxxxxxx…' %>"
+                <%= account.fb_status !== 'active' ? 'required' : '' %> autocomplete="off">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">App Secret <span class="text-muted fw-normal">(optional — for webhook verification)</span></label>
+              <input type="password" name="app_secret" class="form-control token-field"
+                placeholder="Leave blank to skip" autocomplete="off">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Test Event Code <span class="text-muted fw-normal">(dev only — remove before going live)</span></label>
+              <input type="text" name="test_event_code" class="form-control token-field"
+                value="<%= account.test_event_code || '' %>"
+                placeholder="TEST12345">
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button type="submit" class="btn btn-primary fw-semibold">
+              <i class="bi bi-save me-1"></i><%= account.fb_status === 'active' ? 'Update' : 'Connect' %> Facebook
+            </button>
+            <% if (account.fb_status === 'active') { %>
+              <form method="POST" action="/admin/accounts/<%= account.id %>/facebook/disconnect"
+                onsubmit="return confirm('Disconnect? CAPI events will stop sending for this account.')">
+                <button class="btn btn-outline-danger">
+                  <i class="bi bi-x-circle me-1"></i>Disconnect
+                </button>
+              </form>
+            <% } %>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ZOHO CRM -->
+    <div class="card">
+      <div class="card-body p-4">
+
+        <div class="d-flex align-items-start justify-content-between mb-3">
+          <div>
+            <h5 class="fw-bold mb-1">
+              <i class="bi bi-database-fill text-danger me-2"></i>Zoho CRM
+            </h5>
+            <% if (account.zoho_status === 'active') { %>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Connected
+                <% if (account.zoho_connected_at) { %>— since <%= new Date(account.zoho_connected_at).toLocaleDateString() %><% } %>
+              </span>
+            <% } else if (account.zoho_status === 'pending') { %>
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                <i class="bi bi-hourglass me-1"></i>Credentials saved — click Authorize to complete
+              </span>
+            <% } else { %>
+              <span class="badge bg-secondary-subtle text-secondary">Not connected</span>
+            <% } %>
+          </div>
+          <% if (account.zoho_status === 'active') { %>
+            <button class="btn btn-sm btn-outline-danger"
+              data-test-url="/admin/accounts/<%= account.id %>/zoho/test"
+              data-target="zohoTestResult">
+              <i class="bi bi-wifi me-1"></i>Test Connection
+            </button>
+          <% } %>
+        </div>
+        <div id="zohoTestResult" class="d-none"></div>
+
+        <!-- How to guide -->
+        <div class="accordion mb-4">
+          <div class="accordion-item border bg-light">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed py-2 small fw-semibold bg-light"
+                type="button" data-bs-toggle="collapse" data-bs-target="#zohoHelp">
+                <i class="bi bi-question-circle me-2 text-muted"></i>How to get Zoho Client ID &amp; Secret (click to expand)
+              </button>
+            </h2>
+            <div id="zohoHelp" class="accordion-collapse collapse">
+              <div class="accordion-body small py-2">
+                <ol class="mb-0 ps-3">
+                  <li>Go to <strong>api-console.zoho.com</strong> and sign in</li>
+                  <li>Click <strong>Add Client → Server-based Applications</strong></li>
+                  <li>Set <strong>Authorized Redirect URI</strong> to: <code><%= webhookUrl.split('/webhooks')[0] %>/admin/zoho/callback</code></li>
+                  <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                  <li>Paste below → click <strong>Save Credentials</strong></li>
+                  <li>Then click <strong>Authorize with Zoho</strong> → approve → done!</li>
+                </ol>
+                <div class="alert alert-info py-2 mt-2 mb-0 small">
+                  <strong>Data center:</strong> India → <code>zoho.in</code> &nbsp;·&nbsp; EU → <code>zoho.eu</code> &nbsp;·&nbsp; Others → <code>zoho.com</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 1: Save Credentials -->
+        <div class="border rounded p-3 mb-3">
+          <div class="section-header mb-3">
+            <span class="badge bg-primary me-2">Step 1</span>Enter App Credentials
+          </div>
+          <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/save-credentials">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold">Client ID <span class="text-danger">*</span></label>
+                <input type="text" name="client_id" class="form-control token-field"
+                  value="<%= account.client_id || '' %>"
+                  placeholder="1000.XXXXXXXXXX" required>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold">Client Secret <span class="text-danger">*</span></label>
+                <input type="text" name="client_secret" class="form-control token-field"
+                  value="<%= account.client_secret || '' %>"
+                  placeholder="xxxxxxxxxxxxxxxxxx" required autocomplete="off">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Data Center Region</label>
+                <select name="accounts_url" class="form-select form-select-sm">
+                  <% [
+                    ['https://accounts.zoho.com',    '🇺🇸 United States  (accounts.zoho.com)'],
+                    ['https://accounts.zoho.eu',     '🇪🇺 Europe         (accounts.zoho.eu)'],
+                    ['https://accounts.zoho.in',     '🇮🇳 India          (accounts.zoho.in)'],
+                    ['https://accounts.zoho.com.au', '🇦🇺 Australia      (accounts.zoho.com.au)'],
+                    ['https://accounts.zoho.jp',     '🇯🇵 Japan          (accounts.zoho.jp)'],
+                  ].forEach(([val, label]) => { %>
+                    <option value="<%= val %>" <%= account.accounts_url === val ? 'selected' : '' %>><%= label %></option>
+                  <% }); %>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-outline-dark btn-sm mt-3">
+              <i class="bi bi-floppy me-1"></i>Save Credentials
+            </button>
+          </form>
+        </div>
+
+        <!-- STEP 2: Authorize -->
+        <div class="border rounded p-3 <%= !account.client_id ? 'opacity-50' : '' %>">
+          <div class="section-header mb-2">
+            <span class="badge bg-danger me-2">Step 2</span>Authorize with Zoho
+          </div>
+          <p class="text-muted small mb-3">
+            <% if (account.client_id) { %>
+              Credentials saved (<code><%= account.client_id %></code>). Click below to open Zoho's authorization page.
+            <% } else { %>
+              Complete Step 1 first to enable authorization.
+            <% } %>
+          </p>
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/authorize">
+              <button type="submit" class="btn btn-danger fw-semibold" <%= !account.client_id ? 'disabled' : '' %>>
+                <i class="bi bi-box-arrow-in-right me-1"></i>
+                <%= account.zoho_status === 'active' ? 'Re-authorize Zoho' : 'Authorize with Zoho' %>
+              </button>
+            </form>
+            <% if (account.zoho_status === 'active') { %>
+              <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/disconnect"
+                onsubmit="return confirm('Disconnect Zoho? Token refresh will stop.')">
+                <button class="btn btn-outline-danger">
+                  <i class="bi bi-x-circle me-1"></i>Disconnect
+                </button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div>

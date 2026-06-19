@@ -1,0 +1,50 @@
+// Deluge Function: send_qualified_lead_event
+// Module: Leads | Trigger: Record Updated (Lead Status → Qualified)
+// Input argument: lead_id (String)
+
+String PIXEL_ID     = zoho.crm.getVariable('FB_Pixel_ID').get('value');
+String ACCESS_TOKEN = zoho.crm.getVariable('FB_Access_Token').get('value');
+
+Map lead = zoho.crm.getRecordById('Leads', lead_id);
+String email      = lead.get('Email');
+String phone      = lead.get('Phone');
+String campaignId = lead.get('Facebook_Campaign_ID');
+
+String eventId = 'qualified_' + lead_id + '_' + zoho.currenttime.toLong();
+
+Map userData = Map();
+if (!email.isNull() && email.length() > 0) {
+  userData.put('em', list(zoho.encryption.sha256(email.toLowerCase().trim())));
+}
+if (!phone.isNull() && phone.length() > 0) {
+  String clean = phone.replaceAll('[^0-9]', '');
+  if (clean.length() == 10) { clean = '1' + clean; }
+  userData.put('ph', list(zoho.encryption.sha256(clean)));
+}
+
+Map customData = Map();
+customData.put('zoho_lead_id', lead_id.toString());
+if (!campaignId.isNull()) { customData.put('campaign_id', campaignId); }
+
+Map eventData = Map();
+eventData.put('event_name', 'QualifiedLead');
+eventData.put('event_time', zoho.currenttime.toLong() / 1000);
+eventData.put('action_source', 'crm');
+eventData.put('event_id', eventId);
+eventData.put('user_data', userData);
+eventData.put('custom_data', customData);
+
+Map payload = Map();
+payload.put('data', list(eventData));
+payload.put('access_token', ACCESS_TOKEN);
+
+Map headers = Map();
+headers.put('Content-Type', 'application/json');
+String apiUrl = 'https://graph.facebook.com/v19.0/' + PIXEL_ID + '/events';
+
+try {
+  Map response = invokeURL([url: apiUrl, type: POST, parameters: payload.toString(), headers: headers]);
+  info '[CAPI] QualifiedLead: ' + response.toString();
+} catch (e) {
+  info '[CAPI] QualifiedLead EXCEPTION: ' + e.toString();
+}
