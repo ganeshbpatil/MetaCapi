@@ -50,10 +50,14 @@ async function sendLeadEvent(fbConfig, lead) {
   const event = makeEvent('Lead', lead.zohoId, buildUserData(lead), {
     lead_source: lead.sourcePlatform || 'website',
     zoho_lead_id: lead.zohoId,
-    ...(lead.campaignId && { campaign_id: lead.campaignId }),
-    ...(lead.adSetId && { adset_id: lead.adSetId }),
-    ...(lead.adId && { ad_id: lead.adId }),
-    ...(lead.formId && { form_id: lead.formId }),
+    ...(lead.campaignId   && { campaign_id:   lead.campaignId }),
+    ...(lead.campaignName && { campaign_name: lead.campaignName }),
+    ...(lead.adSetId      && { adset_id:      lead.adSetId }),
+    ...(lead.adSetName    && { adset_name:    lead.adSetName }),
+    ...(lead.adId         && { ad_id:         lead.adId }),
+    ...(lead.adName       && { ad_name:       lead.adName }),
+    ...(lead.formId       && { form_id:       lead.formId }),
+    ...(lead.formName     && { form_name:     lead.formName }),
   });
   const result = await sendWithRetry(fbConfig, [event]);
   logger.info('Lead event sent', { event_id: event.event_id, pixel: fbConfig.pixel_id });
@@ -63,7 +67,10 @@ async function sendLeadEvent(fbConfig, lead) {
 async function sendQualifiedLeadEvent(fbConfig, lead) {
   const event = makeEvent('QualifiedLead', lead.zohoId, buildUserData(lead), {
     zoho_lead_id: lead.zohoId,
-    ...(lead.campaignId && { campaign_id: lead.campaignId }),
+    ...(lead.campaignId   && { campaign_id:   lead.campaignId }),
+    ...(lead.campaignName && { campaign_name: lead.campaignName }),
+    ...(lead.adSetId      && { adset_id:      lead.adSetId }),
+    ...(lead.adId         && { ad_id:         lead.adId }),
   });
   const result = await sendWithRetry(fbConfig, [event]);
   return { success: true, event_id: event.event_id, result };
@@ -85,9 +92,10 @@ async function sendPurchaseEvent(fbConfig, deal) {
     currency: deal.currency || 'USD',
     order_id: `DEAL-${deal.zohoId}`,
     zoho_deal_id: deal.zohoId,
-    ...(deal.campaignId && { campaign_id: deal.campaignId }),
-    ...(deal.adSetId && { adset_id: deal.adSetId }),
-    ...(deal.adId && { ad_id: deal.adId }),
+    ...(deal.campaignId    && { campaign_id:    deal.campaignId }),
+    ...(deal.campaignName  && { campaign_name:  deal.campaignName }),
+    ...(deal.adSetId       && { adset_id:       deal.adSetId }),
+    ...(deal.adId          && { ad_id:          deal.adId }),
     ...(deal.originalLeadId && { original_lead_id: deal.originalLeadId }),
   });
   const result = await sendWithRetry(fbConfig, [event]);

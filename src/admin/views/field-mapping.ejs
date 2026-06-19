@@ -19,120 +19,178 @@
   </div>
 <% } %>
 
-<div class="d-flex align-items-center mb-3 gap-2">
-  <h5 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-2"></i>Field Mapping</h5>
-  <span class="badge bg-secondary-subtle text-secondary border"><%= account.name %></span>
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <div>
+    <h5 class="fw-bold mb-1"><i class="bi bi-diagram-3 me-2"></i>Field Mapping</h5>
+    <div class="text-muted small">Map Zoho CRM field names → Facebook CAPI fields for <strong><%= account.name %></strong></div>
+  </div>
+  <button class="btn btn-sm btn-outline-secondary" id="fillDefaultsBtn" type="button">
+    <i class="bi bi-magic me-1"></i>Fill Defaults
+  </button>
 </div>
 
+<form method="POST" action="/admin/accounts/<%= account.id %>/field-mapping/save">
 <div class="row g-4">
+
+  <!-- Left: mapping table -->
   <div class="col-lg-8">
-    <div class="card">
-      <div class="card-body p-4">
 
-        <p class="text-muted small mb-4">
-          Map each <strong>Facebook CAPI field</strong> to the corresponding <strong>Zoho CRM field name</strong>
-          exactly as it appears in the webhook payload sent by Zoho.<br>
-          Leave a field blank to skip it.
-        </p>
-
-        <form method="POST" action="/admin/accounts/<%= account.id %>/field-mapping/save">
-
-          <div class="table-responsive">
-            <table class="table table-sm align-middle" style="font-size:.88rem">
-              <thead class="table-light">
-                <tr>
-                  <th style="width:200px">Facebook CAPI Field</th>
-                  <th>Zoho CRM Field Name</th>
-                  <th style="width:90px" class="text-center">Required</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% fbFields.forEach(field => { %>
-                <tr>
-                  <td>
-                    <span class="fw-semibold"><%= field.label %></span>
-                    <div class="text-muted" style="font-size:.75rem;font-family:monospace"><%= field.key %></div>
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      name="mapping[<%= field.key %>]"
-                      class="form-control form-control-sm token-field"
-                      value="<%= mappings[field.key] || '' %>"
-                      placeholder="e.g. <%= defaultPlaceholder(field.key) %>"
-                    >
-                  </td>
-                  <td class="text-center">
-                    <% if (field.required) { %>
-                      <span class="badge bg-danger-subtle text-danger">Required</span>
-                    <% } else { %>
-                      <span class="text-muted small">Optional</span>
-                    <% } %>
-                  </td>
-                </tr>
-                <% }); %>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="d-flex gap-2 mt-2">
-            <button type="submit" class="btn btn-primary fw-semibold">
-              <i class="bi bi-save me-1"></i>Save Mappings
-            </button>
-            <a href="/admin/accounts/<%= account.id %>" class="btn btn-outline-secondary">Cancel</a>
-          </div>
-        </form>
-
+    <%
+    const groups = [...new Set(fbFields.map(f => f.group))];
+    groups.forEach(group => {
+      const fields = fbFields.filter(f => f.group === group);
+    %>
+    <div class="card mb-3">
+      <div class="card-header py-2 bg-light">
+        <span class="fw-semibold small">
+          <% if (group === 'User Identity') { %>
+            <i class="bi bi-person-fill me-1 text-primary"></i>
+          <% } else if (group === 'Facebook Attribution') { %>
+            <i class="bi bi-meta me-1 text-primary"></i>
+          <% } else if (group === 'Campaign & Ad') { %>
+            <i class="bi bi-megaphone-fill me-1 text-warning"></i>
+          <% } else { %>
+            <i class="bi bi-currency-dollar me-1 text-success"></i>
+          <% } %>
+          <%= group %>
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0" style="font-size:.85rem">
+          <thead class="table-light">
+            <tr>
+              <th style="width:220px">Facebook CAPI Field</th>
+              <th>Zoho CRM Field Name (API Name)</th>
+              <th style="width:80px" class="text-center">Hashed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% fields.forEach(field => { %>
+            <tr>
+              <td>
+                <div class="fw-semibold"><%= field.label %></div>
+                <div class="font-monospace text-muted" style="font-size:.73rem"><%= field.key %></div>
+                <% if (field.required) { %>
+                  <span class="badge bg-danger-subtle text-danger" style="font-size:.65rem">Required</span>
+                <% } %>
+              </td>
+              <td>
+                <input
+                  type="text"
+                  name="mapping[<%= field.key %>]"
+                  class="form-control form-control-sm token-field field-mapping-input"
+                  value="<%= mappings[field.key] || '' %>"
+                  placeholder="<%= defaultZohoNames[field.key] || '' %>"
+                  data-default="<%= defaultZohoNames[field.key] || '' %>"
+                >
+              </td>
+              <td class="text-center">
+                <% if (field.hash) { %>
+                  <span class="badge bg-primary-subtle text-primary" title="SHA-256 hashed before sending">
+                    <i class="bi bi-shield-lock-fill"></i>
+                  </span>
+                <% } else { %>
+                  <span class="text-muted small">—</span>
+                <% } %>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
       </div>
     </div>
+    <% }); %>
+
+    <div class="d-flex gap-2 mt-1 mb-4">
+      <button type="submit" class="btn btn-primary fw-semibold">
+        <i class="bi bi-save me-1"></i>Save Mappings
+      </button>
+      <a href="/admin/accounts/<%= account.id %>" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+
   </div>
 
+  <!-- Right: reference -->
   <div class="col-lg-4">
-    <div class="card bg-light border-0">
-      <div class="card-body">
-        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>How it works</h6>
-        <p class="small text-muted mb-3">
-          When Zoho sends a webhook, the payload contains a <code>record_data</code> object
-          with field names exactly as they appear in Zoho CRM.
-        </p>
-        <p class="small text-muted mb-3">
-          Enter the <strong>exact Zoho field API name</strong> (case-sensitive) that corresponds
-          to each Facebook CAPI field.
-        </p>
 
-        <div class="section-header">Common Zoho Lead Field Names</div>
-        <table class="table table-sm table-borderless" style="font-size:.78rem">
+    <div class="card bg-light border-0 mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1"></i>How it works</h6>
+        <p class="small text-muted mb-2">
+          Enter the <strong>exact Zoho API field name</strong> (case-sensitive) that
+          corresponds to each Facebook CAPI field.
+        </p>
+        <p class="small text-muted mb-0">
+          When Zoho sends a webhook, MetaCapi reads the value from that field name
+          in the <code>record_data</code> payload and sends it to Facebook.
+        </p>
+      </div>
+    </div>
+
+    <div class="card border-0 mb-3">
+      <div class="card-body p-0">
+        <div class="section-header px-3 pt-3">Zoho Leads — Standard Fields</div>
+        <table class="table table-sm table-borderless table-hover mb-0" style="font-size:.78rem">
           <tbody>
-            <tr><td class="text-muted">Email</td><td class="font-monospace">Email</td></tr>
-            <tr><td class="text-muted">Phone</td><td class="font-monospace">Phone</td></tr>
-            <tr><td class="text-muted">Mobile</td><td class="font-monospace">Mobile</td></tr>
-            <tr><td class="text-muted">First Name</td><td class="font-monospace">First_Name</td></tr>
-            <tr><td class="text-muted">Last Name</td><td class="font-monospace">Last_Name</td></tr>
-            <tr><td class="text-muted">City</td><td class="font-monospace">City</td></tr>
-            <tr><td class="text-muted">State</td><td class="font-monospace">State</td></tr>
-            <tr><td class="text-muted">Zip Code</td><td class="font-monospace">Zip_Code</td></tr>
-            <tr><td class="text-muted">Country</td><td class="font-monospace">Country</td></tr>
-            <tr><td class="text-muted">Deal Amount</td><td class="font-monospace">Amount</td></tr>
+            <tr><td class="text-muted ps-3">Email</td><td class="font-monospace pe-3">Email</td></tr>
+            <tr><td class="text-muted ps-3">Phone</td><td class="font-monospace pe-3">Phone</td></tr>
+            <tr><td class="text-muted ps-3">Mobile</td><td class="font-monospace pe-3">Mobile</td></tr>
+            <tr><td class="text-muted ps-3">First Name</td><td class="font-monospace pe-3">First_Name</td></tr>
+            <tr><td class="text-muted ps-3">Last Name</td><td class="font-monospace pe-3">Last_Name</td></tr>
+            <tr><td class="text-muted ps-3">City</td><td class="font-monospace pe-3">City</td></tr>
+            <tr><td class="text-muted ps-3">State</td><td class="font-monospace pe-3">State</td></tr>
+            <tr><td class="text-muted ps-3">Zip Code</td><td class="font-monospace pe-3">Zip_Code</td></tr>
+            <tr><td class="text-muted ps-3">Country</td><td class="font-monospace pe-3">Country</td></tr>
           </tbody>
         </table>
 
-        <div class="alert alert-info py-2 small mb-0">
-          <i class="bi bi-lightbulb me-1"></i>
-          To find exact field names, check your Zoho webhook payload in the
-          <strong>Event Logs</strong> tab after a test event.
-        </div>
+        <div class="section-header px-3 pt-2">Zoho Leads — Custom Fields (Step 12)</div>
+        <table class="table table-sm table-borderless table-hover mb-0" style="font-size:.78rem">
+          <tbody>
+            <tr><td class="text-muted ps-3">Facebook Campaign ID</td><td class="font-monospace pe-3">Facebook_Campaign_ID</td></tr>
+            <tr><td class="text-muted ps-3">Campaign Name</td><td class="font-monospace pe-3">Facebook_Campaign_Name</td></tr>
+            <tr><td class="text-muted ps-3">Ad Set ID</td><td class="font-monospace pe-3">Facebook_Ad_Set_ID</td></tr>
+            <tr><td class="text-muted ps-3">Ad Set Name</td><td class="font-monospace pe-3">Facebook_Ad_Set_Name</td></tr>
+            <tr><td class="text-muted ps-3">Facebook Ad ID</td><td class="font-monospace pe-3">Facebook_Ad_ID</td></tr>
+            <tr><td class="text-muted ps-3">Ad Name</td><td class="font-monospace pe-3">Facebook_Ad_Name</td></tr>
+            <tr><td class="text-muted ps-3">Form ID</td><td class="font-monospace pe-3">Facebook_Form_ID</td></tr>
+            <tr><td class="text-muted ps-3">Form Name</td><td class="font-monospace pe-3">Facebook_Form_Name</td></tr>
+            <tr><td class="text-muted ps-3">Source Platform</td><td class="font-monospace pe-3">Source_Platform</td></tr>
+            <tr><td class="text-muted ps-3">fbclid</td><td class="font-monospace pe-3">fbclid</td></tr>
+            <tr><td class="text-muted ps-3">Lead Facebook ID</td><td class="font-monospace pe-3">Lead_Facebook_ID</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-header px-3 pt-2">Zoho Deals — Custom Fields</div>
+        <table class="table table-sm table-borderless table-hover mb-0" style="font-size:.78rem">
+          <tbody>
+            <tr><td class="text-muted ps-3">Deal Amount</td><td class="font-monospace pe-3">Amount</td></tr>
+            <tr><td class="text-muted ps-3">Currency</td><td class="font-monospace pe-3">Currency</td></tr>
+            <tr><td class="text-muted ps-3">Facebook Lead ID</td><td class="font-monospace pe-3">Facebook_Lead_ID</td></tr>
+            <tr><td class="text-muted ps-3">Source Campaign ID</td><td class="font-monospace pe-3">Source_Campaign_ID</td></tr>
+            <tr><td class="text-muted ps-3">Source Ad ID</td><td class="font-monospace pe-3">Source_Ad_ID</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
-</div>
 
-<%
-function defaultPlaceholder(key) {
-  const map = {
-    email: 'Email', phone: 'Mobile', firstName: 'First_Name',
-    lastName: 'Last_Name', city: 'City', state: 'State',
-    zip: 'Zip_Code', country: 'Country', value: 'Amount', currency: 'Currency'
-  };
-  return map[key] || key;
-}
-%>
+    <div class="alert alert-info small mb-0">
+      <i class="bi bi-shield-lock-fill me-1"></i>
+      Fields marked <strong>Hashed</strong> are SHA-256 hashed before sending to Facebook.
+      Raw values never leave your server.
+    </div>
+
+  </div>
+
+</div>
+</form>
+
+<script>
+document.getElementById('fillDefaultsBtn').addEventListener('click', () => {
+  document.querySelectorAll('.field-mapping-input').forEach(input => {
+    if (!input.value && input.dataset.default) {
+      input.value = input.dataset.default;
+    }
+  });
+});
+</script>

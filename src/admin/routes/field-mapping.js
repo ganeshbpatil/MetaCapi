@@ -3,7 +3,7 @@ const router = express.Router({ mergeParams: true });
 const accountModel = require('../../db/models/account');
 const fieldMappingModel = require('../../db/models/field-mapping');
 
-router.use(express.urlencoded({ extended: false }));
+router.use(express.urlencoded({ extended: true }));
 
 router.get('/', (req, res) => {
   const account = accountModel.findById(req.params.id);
@@ -19,6 +19,7 @@ router.get('/', (req, res) => {
     account,
     mappings,
     fbFields: fieldMappingModel.FB_FIELDS,
+    defaultZohoNames: fieldMappingModel.DEFAULT_ZOHO_NAMES,
     flash,
     flashError,
   });
