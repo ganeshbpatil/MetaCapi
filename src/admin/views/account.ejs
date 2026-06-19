@@ -196,6 +196,7 @@
     <!-- ZOHO CRM -->
     <div class="card">
       <div class="card-body p-4">
+
         <div class="d-flex align-items-start justify-content-between mb-3">
           <div>
             <h5 class="fw-bold mb-1">
@@ -224,7 +225,8 @@
         </div>
         <div id="zohoTestResult" class="d-none"></div>
 
-        <div class="accordion mb-3">
+        <!-- How to guide -->
+        <div class="accordion mb-4">
           <div class="accordion-item border bg-light">
             <h2 class="accordion-header">
               <button class="accordion-button collapsed py-2 small fw-semibold bg-light"
@@ -236,55 +238,79 @@
               <div class="accordion-body small py-2">
                 <ol class="mb-0 ps-3">
                   <li>Go to <strong>api-console.zoho.com</strong> and sign in</li>
-                  <li>Click <strong>Add Client → Self Client</strong></li>
-                  <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> shown on screen</li>
-                  <li>Paste them below, select your data center region, click <strong>Authorize with Zoho</strong></li>
-                  <li>You'll be redirected to Zoho — click <strong>Accept</strong> to grant permission</li>
-                  <li>You'll be redirected back here automatically — Zoho is connected!</li>
+                  <li>Click <strong>Add Client → Server-based Applications</strong></li>
+                  <li>Set <strong>Authorized Redirect URI</strong> to: <code><%= webhookUrl.split('/webhooks')[0] %>/admin/zoho/callback</code></li>
+                  <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                  <li>Paste below → click <strong>Save Credentials</strong></li>
+                  <li>Then click <strong>Authorize with Zoho</strong> → approve → done!</li>
                 </ol>
                 <div class="alert alert-info py-2 mt-2 mb-0 small">
-                  <strong>Data center:</strong> Choose the region where your Zoho account is hosted.
-                  India users → <code>zoho.in</code>. EU users → <code>zoho.eu</code>. Most others → <code>zoho.com</code>
+                  <strong>Data center:</strong> India → <code>zoho.in</code> &nbsp;·&nbsp; EU → <code>zoho.eu</code> &nbsp;·&nbsp; Others → <code>zoho.com</code>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/connect">
-          <div class="row g-3">
-            <div class="col-sm-6">
-              <label class="form-label small fw-semibold">Client ID <span class="text-danger">*</span></label>
-              <input type="text" name="client_id" class="form-control token-field"
-                value="<%= account.client_id || '' %>"
-                placeholder="1000.XXXXXXXXXX" required>
-            </div>
-            <div class="col-sm-6">
-              <label class="form-label small fw-semibold">Client Secret <span class="text-danger">*</span></label>
-              <input type="password" name="client_secret" class="form-control token-field"
-                value="<%= account.client_secret || '' %>"
-                placeholder="xxxxxxxxxxxxxxxxxx" required autocomplete="off">
-            </div>
-            <div class="col-12">
-              <label class="form-label small fw-semibold">Zoho Data Center Region</label>
-              <select name="accounts_url" class="form-select form-select-sm">
-                <% [
-                  ['https://accounts.zoho.com',    '🇺🇸 United States  (accounts.zoho.com)'],
-                  ['https://accounts.zoho.eu',     '🇪🇺 Europe         (accounts.zoho.eu)'],
-                  ['https://accounts.zoho.in',     '🇮🇳 India          (accounts.zoho.in)'],
-                  ['https://accounts.zoho.com.au', '🇦🇺 Australia      (accounts.zoho.com.au)'],
-                  ['https://accounts.zoho.jp',     '🇯🇵 Japan          (accounts.zoho.jp)'],
-                ].forEach(([val, label]) => { %>
-                  <option value="<%= val %>" <%= account.accounts_url === val ? 'selected' : '' %>><%= label %></option>
-                <% }); %>
-              </select>
-            </div>
+        <!-- STEP 1: Save Credentials -->
+        <div class="border rounded p-3 mb-3">
+          <div class="section-header mb-3">
+            <span class="badge bg-primary me-2">Step 1</span>Enter App Credentials
           </div>
-          <div class="d-flex gap-2 mt-3 flex-wrap">
-            <button type="submit" class="btn btn-danger fw-semibold">
-              <i class="bi bi-box-arrow-in-right me-1"></i>
-              <%= account.zoho_status === 'active' ? 'Re-authorize Zoho' : 'Authorize with Zoho' %>
+          <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/save-credentials">
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold">Client ID <span class="text-danger">*</span></label>
+                <input type="text" name="client_id" class="form-control token-field"
+                  value="<%= account.client_id || '' %>"
+                  placeholder="1000.XXXXXXXXXX" required>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label small fw-semibold">Client Secret <span class="text-danger">*</span></label>
+                <input type="text" name="client_secret" class="form-control token-field"
+                  value="<%= account.client_secret || '' %>"
+                  placeholder="xxxxxxxxxxxxxxxxxx" required autocomplete="off">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Data Center Region</label>
+                <select name="accounts_url" class="form-select form-select-sm">
+                  <% [
+                    ['https://accounts.zoho.com',    '🇺🇸 United States  (accounts.zoho.com)'],
+                    ['https://accounts.zoho.eu',     '🇪🇺 Europe         (accounts.zoho.eu)'],
+                    ['https://accounts.zoho.in',     '🇮🇳 India          (accounts.zoho.in)'],
+                    ['https://accounts.zoho.com.au', '🇦🇺 Australia      (accounts.zoho.com.au)'],
+                    ['https://accounts.zoho.jp',     '🇯🇵 Japan          (accounts.zoho.jp)'],
+                  ].forEach(([val, label]) => { %>
+                    <option value="<%= val %>" <%= account.accounts_url === val ? 'selected' : '' %>><%= label %></option>
+                  <% }); %>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-outline-dark btn-sm mt-3">
+              <i class="bi bi-floppy me-1"></i>Save Credentials
             </button>
+          </form>
+        </div>
+
+        <!-- STEP 2: Authorize -->
+        <div class="border rounded p-3 <%= !account.client_id ? 'opacity-50' : '' %>">
+          <div class="section-header mb-2">
+            <span class="badge bg-danger me-2">Step 2</span>Authorize with Zoho
+          </div>
+          <p class="text-muted small mb-3">
+            <% if (account.client_id) { %>
+              Credentials saved (<code><%= account.client_id %></code>). Click below to open Zoho's authorization page.
+            <% } else { %>
+              Complete Step 1 first to enable authorization.
+            <% } %>
+          </p>
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/authorize">
+              <button type="submit" class="btn btn-danger fw-semibold" <%= !account.client_id ? 'disabled' : '' %>>
+                <i class="bi bi-box-arrow-in-right me-1"></i>
+                <%= account.zoho_status === 'active' ? 'Re-authorize Zoho' : 'Authorize with Zoho' %>
+              </button>
+            </form>
             <% if (account.zoho_status === 'active') { %>
               <form method="POST" action="/admin/accounts/<%= account.id %>/zoho/disconnect"
                 onsubmit="return confirm('Disconnect Zoho? Token refresh will stop.')">
@@ -294,7 +320,8 @@
               </form>
             <% } %>
           </div>
-        </form>
+        </div>
+
       </div>
     </div>
 
