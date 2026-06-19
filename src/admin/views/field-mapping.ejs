@@ -1,0 +1,138 @@
+<% pageTitle = account.name + ' — Field Mapping'; %>
+
+<div class="mb-4">
+  <a href="/admin/accounts/<%= account.id %>" class="text-muted text-decoration-none small">
+    <i class="bi bi-arrow-left me-1"></i><%= account.name %>
+  </a>
+</div>
+
+<% if (flash) { %>
+  <div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-check-circle me-1"></i><%= flash %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+<% if (flashError) { %>
+  <div class="alert alert-danger alert-dismissible fade show">
+    <i class="bi bi-x-circle me-1"></i><%= flashError %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% } %>
+
+<div class="d-flex align-items-center mb-3 gap-2">
+  <h5 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-2"></i>Field Mapping</h5>
+  <span class="badge bg-secondary-subtle text-secondary border"><%= account.name %></span>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-body p-4">
+
+        <p class="text-muted small mb-4">
+          Map each <strong>Facebook CAPI field</strong> to the corresponding <strong>Zoho CRM field name</strong>
+          exactly as it appears in the webhook payload sent by Zoho.<br>
+          Leave a field blank to skip it.
+        </p>
+
+        <form method="POST" action="/admin/accounts/<%= account.id %>/field-mapping/save">
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle" style="font-size:.88rem">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:200px">Facebook CAPI Field</th>
+                  <th>Zoho CRM Field Name</th>
+                  <th style="width:90px" class="text-center">Required</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% fbFields.forEach(field => { %>
+                <tr>
+                  <td>
+                    <span class="fw-semibold"><%= field.label %></span>
+                    <div class="text-muted" style="font-size:.75rem;font-family:monospace"><%= field.key %></div>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="mapping[<%= field.key %>]"
+                      class="form-control form-control-sm token-field"
+                      value="<%= mappings[field.key] || '' %>"
+                      placeholder="e.g. <%= defaultPlaceholder(field.key) %>"
+                    >
+                  </td>
+                  <td class="text-center">
+                    <% if (field.required) { %>
+                      <span class="badge bg-danger-subtle text-danger">Required</span>
+                    <% } else { %>
+                      <span class="text-muted small">Optional</span>
+                    <% } %>
+                  </td>
+                </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary fw-semibold">
+              <i class="bi bi-save me-1"></i>Save Mappings
+            </button>
+            <a href="/admin/accounts/<%= account.id %>" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card bg-light border-0">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>How it works</h6>
+        <p class="small text-muted mb-3">
+          When Zoho sends a webhook, the payload contains a <code>record_data</code> object
+          with field names exactly as they appear in Zoho CRM.
+        </p>
+        <p class="small text-muted mb-3">
+          Enter the <strong>exact Zoho field API name</strong> (case-sensitive) that corresponds
+          to each Facebook CAPI field.
+        </p>
+
+        <div class="section-header">Common Zoho Lead Field Names</div>
+        <table class="table table-sm table-borderless" style="font-size:.78rem">
+          <tbody>
+            <tr><td class="text-muted">Email</td><td class="font-monospace">Email</td></tr>
+            <tr><td class="text-muted">Phone</td><td class="font-monospace">Phone</td></tr>
+            <tr><td class="text-muted">Mobile</td><td class="font-monospace">Mobile</td></tr>
+            <tr><td class="text-muted">First Name</td><td class="font-monospace">First_Name</td></tr>
+            <tr><td class="text-muted">Last Name</td><td class="font-monospace">Last_Name</td></tr>
+            <tr><td class="text-muted">City</td><td class="font-monospace">City</td></tr>
+            <tr><td class="text-muted">State</td><td class="font-monospace">State</td></tr>
+            <tr><td class="text-muted">Zip Code</td><td class="font-monospace">Zip_Code</td></tr>
+            <tr><td class="text-muted">Country</td><td class="font-monospace">Country</td></tr>
+            <tr><td class="text-muted">Deal Amount</td><td class="font-monospace">Amount</td></tr>
+          </tbody>
+        </table>
+
+        <div class="alert alert-info py-2 small mb-0">
+          <i class="bi bi-lightbulb me-1"></i>
+          To find exact field names, check your Zoho webhook payload in the
+          <strong>Event Logs</strong> tab after a test event.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%
+function defaultPlaceholder(key) {
+  const map = {
+    email: 'Email', phone: 'Mobile', firstName: 'First_Name',
+    lastName: 'Last_Name', city: 'City', state: 'State',
+    zip: 'Zip_Code', country: 'Country', value: 'Amount', currency: 'Currency'
+  };
+  return map[key] || key;
+}
+%>

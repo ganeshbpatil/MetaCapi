@@ -7,6 +7,7 @@ const accountsRouter = require('./routes/accounts');
 const facebookRouter = require('./routes/facebook');
 const zohoRouter = require('./routes/zoho');
 const logsRouter = require('./routes/logs');
+const fieldMappingRouter = require('./routes/field-mapping');
 
 const adminRouter = express.Router();
 
@@ -135,5 +136,6 @@ adminRouter.use('/accounts', requireAuth, accountsRouter);
 adminRouter.use('/accounts/:id/facebook', requireAuth, facebookRouter);
 adminRouter.use('/accounts/:id/zoho', requireAuth, zohoRouter);
 adminRouter.use('/accounts/:id/logs', requireAuth, logsRouter);
+adminRouter.use('/accounts/:id/field-mapping', requireAuth, fieldMappingRouter);
 
 module.exports = { adminRouter };

@@ -1,5 +1,6 @@
 const facebook = require('../services/facebook');
 const fbConfigModel = require('../db/models/facebook-config');
+const fieldMappingModel = require('../db/models/field-mapping');
 const eventLog = require('../db/models/event-log');
 const { logger } = require('../utils/logger');
 
@@ -14,23 +15,31 @@ async function processEvent(job) {
     return { skipped: true, reason: 'No Facebook config' };
   }
 
+  // Apply field mappings if configured, otherwise pass record_data as-is
+  let mappedData = { zohoId: record_id, ...record_data };
+  if (accountId) {
+    const mappings = fieldMappingModel.findByAccount(accountId);
+    if (Object.keys(mappings).length > 0) {
+      const applied = fieldMappingModel.applyMappings(mappings, record_data);
+      mappedData = { zohoId: record_id, ...applied };
+    }
+  }
+
   let result;
   try {
-    const data = { zohoId: record_id, ...record_data };
-
     switch (event_type) {
       case 'lead_created':
-        result = await facebook.sendLeadEvent(fbConfig, data); break;
+        result = await facebook.sendLeadEvent(fbConfig, mappedData); break;
       case 'lead_qualified':
-        result = await facebook.sendQualifiedLeadEvent(fbConfig, data); break;
+        result = await facebook.sendQualifiedLeadEvent(fbConfig, mappedData); break;
       case 'lead_disqualified':
-        result = await facebook.sendDisqualifiedEvent(fbConfig, data); break;
+        result = await facebook.sendDisqualifiedEvent(fbConfig, mappedData); break;
       case 'deal_created':
-        result = await facebook.sendScheduleEvent(fbConfig, data); break;
+        result = await facebook.sendScheduleEvent(fbConfig, mappedData); break;
       case 'deal_won':
-        result = await facebook.sendPurchaseEvent(fbConfig, data); break;
+        result = await facebook.sendPurchaseEvent(fbConfig, mappedData); break;
       case 'deal_lost':
-        result = await facebook.sendDealLostEvent(fbConfig, data); break;
+        result = await facebook.sendDealLostEvent(fbConfig, mappedData); break;
       default:
         logger.warn('Unknown event type, skipping', { event_type });
         return { skipped: true, event_type };

@@ -63,6 +63,14 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_event_logs_account ON event_logs(account_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS field_mappings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    fb_field TEXT NOT NULL,
+    zoho_field TEXT NOT NULL,
+    UNIQUE(account_id, fb_field)
+  );
 `);
 
 module.exports = db;
